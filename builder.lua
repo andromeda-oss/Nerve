@@ -55,10 +55,33 @@ local function addModule(path, origin)
 end
 
 addModule(inputFile)
-
 table.insert(output, ("__require[%q]():__main()"):format(inputFile))
 
-local finalScript = minify([[
+local http = require("http")
+local json = require("json")
+
+function fetchJson(url)
+    return coroutine.wrap(function()
+        local res, err = http.request("GET", url)
+        if not res then
+            error("HTTP request failed: " .. tostring(err))
+        end
+        local body = {}
+        res:on("data", function(chunk) table.insert(body, chunk) end)
+        res:on("end", function()
+            local data = table.concat(body)
+            local ok, parsed = pcall(json.decode, data)
+            if not ok then
+                error("Failed to parse JSON: " .. tostring(parsed))
+            end
+            coroutine.yield(parsed)
+        end)
+    end)()
+end
+
+print(fetchJson)
+
+local finalScript = "--[[\n     \n]]--\n\n" .. minify([[
 local __require = {}
 ]] .. table.concat(output, "\n\n") .. "\n")
 
