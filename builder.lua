@@ -28,11 +28,22 @@ local function resolvePath(requirePath)
     return requirePath:gsub("%.", "/") .. ".lua"
 end
 
+local function minify(code)
+    code = code:gsub("%-%-.-\n", "\n")
+    code = code:gsub("%-%-%[%[.-%]%]", "")
+    code = code:gsub("\r", "")
+    code = code:gsub("\n%s+", "\n")
+    code = code:gsub("%s+\n", "\n")
+    code = code:gsub("[ \t]+", " ")
+    return code
+end
+
+
 local function addModule(path, origin)
     if included[path] then return end
     included[path] = true
 
-    local source = readFile(path)
+    local source = minify(readFile(path))
 
     source = source:gsub("require%s*%(?%\"([%w%.%_/]+)\"%)?", function(reqPath)
         local resolved = resolvePath(reqPath)
@@ -47,9 +58,9 @@ addModule(inputFile)
 
 table.insert(output, ("__require[%q]():__main()"):format(inputFile))
 
-local finalScript = [[
+local finalScript = minify([[
 local __require = {}
-]] .. table.concat(output, "\n\n") .. "\n"
+]] .. table.concat(output, "\n\n") .. "\n")
 
 local file = io.open(outputFile, "w")
 file:write(finalScript)
