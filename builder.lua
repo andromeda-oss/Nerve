@@ -14,6 +14,7 @@ print("")
 local included = {}
 local output = {}
 
+
 local function readFile(path)
     if not path:match("%.lua$") then
         path = path .. ".lua"
@@ -34,15 +35,16 @@ local function resolvePath(requirePath)
 end
 
 local function minify(code)
-    code = code:gsub("%-%-.-\n", "\n")
     code = code:gsub("%-%-%[%[.-%]%]", "")
+    code = code:gsub("%-%-.-\n", "\n")
     code = code:gsub("\r", "")
-    code = code:gsub("\n%s+", "\n")
-    code = code:gsub("%s+\n", "\n")
-    code = code:gsub("[ \t]+", " ")
-    code = code:gsub("\n+", "\n")
+    code = code:gsub("[ \t]*\n[ \t]*", "\n")
+    code = code:gsub("\n+", ";")
+    code = code:gsub("%s+", " ")
+    code = code:match("^%s*(.-)%s*$")
     return code
 end
+
 
 local function addModule(path, origin)
     if included[path] then
