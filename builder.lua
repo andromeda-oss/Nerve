@@ -2,9 +2,14 @@ local inputFile = process.argv[2]
 local outputFile = process.argv[3]
 
 if not inputFile or not outputFile then
-    print("Usage: luvit builder.lua <input> <output>")
+    print("\n🔧 Usage: luvit builder.lua <input> <output>\n")
     os.exit(1)
 end
+
+print("🛠️  Nerve Builder")
+print("📂 Input File:  " .. inputFile)
+print("📦 Output File: " .. outputFile)
+print("")
 
 local included = {}
 local output = {}
@@ -16,7 +21,7 @@ local function readFile(path)
 
     local file = io.open(path, "r")
     if not file then
-        error("Could not open file: " .. path)
+        error("❌ Could not open file: " .. path)
     end
 
     local content = file:read("*a")
@@ -35,13 +40,18 @@ local function minify(code)
     code = code:gsub("\n%s+", "\n")
     code = code:gsub("%s+\n", "\n")
     code = code:gsub("[ \t]+", " ")
+    code = code:gsub("\n+", "\n")
     return code
 end
 
-
 local function addModule(path, origin)
-    if included[path] then return end
+    if included[path] then
+        print("🔁 Skipping already included: " .. path)
+        return
+    end
     included[path] = true
+
+    print("📄 Bundling: " .. path .. (origin and (" (required by " .. origin .. ")") or ""))
 
     local source = minify(readFile(path))
 
@@ -54,39 +64,33 @@ local function addModule(path, origin)
     table.insert(output, ("__require[%q] = function()\n%s\nend"):format(path, source))
 end
 
+print("🔍 Resolving dependencies...\n")
 addModule(inputFile)
+
+print("\n🚀 Appending entry point...")
 table.insert(output, ("__require[%q]():__main()"):format(inputFile))
 
-local http = require("http")
+local fs = require("fs")
 local json = require("json")
 
-function fetchJson(url)
-    return coroutine.wrap(function()
-        local res, err = http.request("GET", url)
-        if not res then
-            error("HTTP request failed: " .. tostring(err))
-        end
-        local body = {}
-        res:on("data", function(chunk) table.insert(body, chunk) end)
-        res:on("end", function()
-            local data = table.concat(body)
-            local ok, parsed = pcall(json.decode, data)
-            if not ok then
-                error("Failed to parse JSON: " .. tostring(parsed))
-            end
-            coroutine.yield(parsed)
-        end)
-    end)()
+print("📑 Loading metadata from metadata.json...")
+local raw = fs.readFileSync("metadata.json")
+local metadata = json.decode(raw)
+
+local credits = "--[[\n"
+for key, value in pairs(metadata) do
+    credits = credits .. string.format("    @%s %s\n", key, value)
 end
+credits = credits .. "]]--\n\n"
 
-print(fetchJson)
-
-local finalScript = "--[[\n     \n]]--\n\n" .. minify([[
-local __require = {}
-]] .. table.concat(output, "\n\n") .. "\n")
+print("📦 Packing final script...\n")
+local finalScript = credits ..
+    minify("local __require = {}") .. ";" ..
+    table.concat(output, ";") .. ";"
 
 local file = io.open(outputFile, "w")
 file:write(finalScript)
 file:close()
 
-print("✅ Compiled to " .. outputFile)
+print("✅ Compilation complete!")
+print("📁 Output written to: " .. outputFile)
