@@ -14,12 +14,15 @@ A lightweight and customizable Lua module bundler written in [Luvit](https://luv
 ---
 
 ## 🚀 Usage
+
 ### Structure
+
 ```bash
 .\luvit.exe builder.lua <input> <output>
 ```
 
 ### Example
+
 ```bash
 .\luvit.exe builder.lua test/core/init.lua output.lua
 ```
