@@ -1,7 +1,7 @@
 local M = {}
 
 function M.init()
-    print("ESP initialized")
+    print("Aimbot initialized")
 end
 
 return M
