@@ -8,6 +8,7 @@ function M.__main()
     esp.init()
     aimbot.init()
     print("Modules initialized")
+    print(#"hi there")
 end
 
 return M
